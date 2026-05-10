@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Flippy Bird Aesthetic</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="login-screen" class="screen">
+            <h1>Flippy Bird</h1>
+            <input type="text" id="username" placeholder="Nama">
+            <input type="password" id="password" placeholder="Password">
+            <button onclick="login()">Login</button>
+        </div>
+
+        <div id="menu-screen" class="screen" style="display:none;">
+            <h2 id="welcome-text">Halo!</h2>
+            <button onclick="startGame()">Play</button>
+            <button onclick="showSkins()">Ganti Skin</button>
+        </div>
+
+        <div id="skin-screen" class="screen" style="display:none;">
+            <h3>Pilih Karakter</h3>
+            <div class="skin-options">
+                <button onclick="setSkin('bird')">🐦 Burung</button>
+                <button onclick="setSkin('cat')">🐱 Kucing</button>
+                <button onclick="setSkin('spider')">🕷️ Laba-laba</button>
+                <button onclick="setSkin('car')">🚗 Mobil</button>
+            </div>
+            <button onclick="backToMenu()">Kembali</button>
+        </div>
+
+        <canvas id="gameCanvas" width="400" height="600" style="display:none;"></canvas>
+        <div id="score-display" style="display:none;">Skor: 0</div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #222; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+#game-container { position: relative; width: 400px; height: 600px; overflow: hidden; background: skyblue; border: 5px solid #fff; border-radius: 15px; }
+
+.screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; background: rgba(255,255,255,0.8); }
+input, button { margin: 10px; padding: 10px; border-radius: 5px; border: 1px solid #ccc; width: 200px; }
+button { background: #4CAF50; color: white; cursor: pointer; border: none; font-weight: bold; }
+
+#gameCanvas { background: linear-gradient(to bottom, #87CEEB 0%, #2e8b57 100%); display: block; }
+#score-display { position: absolute; top: 20px; left: 20px; font-size: 24px; color: white; text-shadow: 2px 2px #000; z-index: 10; }
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let currentSkin = 'bird';
+let score = 0;
+let gameRunning = false;
+
+// --- SISTEM LOGIN ---
+function login() {
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+    if(user && pass) {
+        localStorage.setItem('user', user); // Tersimpan di browser
+        showMenu(user);
+    }
+}
+
+// Cek apakah sudah pernah login sebelumnya
+window.onload = () => {
+    const savedUser = localStorage.getItem('user');
+    if(savedUser) showMenu(savedUser);
+};
+
+function showMenu(name) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('menu-screen').style.display = 'flex';
+    document.getElementById('welcome-text').innerText = "Halo, " + name + "!";
+}
+
+// --- SISTEM SKIN ---
+function showSkins() {
+    document.getElementById('menu-screen').style.display = 'none';
+    document.getElementById('skin-screen').style.display = 'flex';
+}
+
+function setSkin(skin) {
+    currentSkin = skin;
+    alert("Skin diganti ke: " + skin);
+    backToMenu();
+}
+
+function backToMenu() {
+    document.getElementById('skin-screen').style.display = 'none';
+    document.getElementById('menu-screen').style.display = 'flex';
+}
+
+// --- INTI GAME ---
+let player = { x: 50, y: 150, w: 40, h: 40, dy: 0, gravity: 0.6, jump: -8 };
+let pipes = [];
+
+function startGame() {
+    document.getElementById('menu-screen').style.display = 'none';
+    canvas.style.display = 'block';
+    document.getElementById('score-display').style.display = 'block';
+    gameRunning = true;
+    score = 0;
+    player.y = 150;
+    pipes = [];
+    requestAnimationFrame(update);
+}
+
+// Suara Berbeda tiap Karakter (Gunakan file .mp3 milikmu sendiri)
+const sounds = {
+    bird: new Audio('chirp.mp3'),
+    cat: new Audio('meow.mp3'),
+    spider: new Audio('hiss.mp3'),
+    car: new Audio('honk.mp3')
+};
+
+window.addEventListener('keydown', (e) => {
+    if(e.code === 'Space' || e.type === 'mousedown') {
+        player.dy = player.jump;
+        if(sounds[currentSkin]) sounds[currentSkin].play();
+    }
+});
+
+function update() {
+    if(!gameRunning) return;
+
+    // Gerakan Karakter
+    player.dy += player.gravity;
+    player.y += player.dy;
+
+    // Cek Skor Kelipatan 10
+    if (score > 0 && score % 10 === 0) {
+        console.log("Hebat! Skor kamu: " + score);
+    }
+
+    // Gambar Background & Karakter (Sederhana dengan Emoji)
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Gambar Tanah Estetik (Bergerak)
+    ctx.fillStyle = '#228B22';
+    ctx.fillRect(0, 550, canvas.width, 50);
+
+    // Gambar Player sesuai Skin
+    ctx.font = "40px Arial";
+    let emoji = currentSkin === 'bird' ? '🐦' : currentSkin === 'cat' ? '🐱' : currentSkin === 'spider' ? '🕷️' : '🚗';
+    ctx.fillText(emoji, player.x, player.y);
+
+    // Logika Rintangan (Sederhana)
+    if(player.y > 550 || player.y < 0) {
+        alert("Game Over! Skor: " + score);
+        gameRunning = false;
+        location.reload();
+    }
+
+    document.getElementById('score-display').innerText = "Skor: " + score;
+    // (Tambahkan logika pipa/rintangan di sini untuk game yang lebih lengkap)
+    
+    requestAnimationFrame(update);
+}
